@@ -1,7 +1,7 @@
 package proyecto_ruleta;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import javax.swing.JOptionPane;
 
@@ -18,7 +18,7 @@ public class Proyecto_Ruleta {
             "Verde", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo",
             "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Rojo",
             "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro",
-            "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro"
+            "Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro"
         };
         private final Random random = new Random();
 
@@ -34,49 +34,26 @@ public class Proyecto_Ruleta {
 
     // Clase Apuesta, que representa una apuesta del jugador
     public static class Apuesta {
-        private List<Integer> numeros;
-        private List<String> colores;
-        private int cantidadNumeros;
+        private Map<Integer, Integer> numeros;
         private int cantidadColores;
 
         public Apuesta() {
-            this.numeros = new ArrayList<>();
-            this.colores = new ArrayList<>();
-            this.cantidadNumeros = 0;
+            this.numeros = new HashMap<>();
             this.cantidadColores = 0;
         }
 
-        public void agregarNumero(int numero) {
-            if (numero >= 0 && numero <= 36 && !numeros.contains(numero)) {
-                numeros.add(numero);
+        public void agregarNumero(int numero, int cantidad) {
+            if (numero >= 0 && numero <= 36 && cantidad > 0) {
+                numeros.put(numero, cantidad);
             }
-        }
-
-        public void agregarColor(String color) {
-            color = color.substring(0, 1).toUpperCase() + color.substring(1).toLowerCase();
-            if ((color.equals("Rojo") || color.equals("Negro")) && !colores.contains(color)) {
-                colores.add(color);
-            }
-        }
-
-        public void setCantidadNumeros(int cantidad) {
-            this.cantidadNumeros = cantidad;
         }
 
         public void setCantidadColores(int cantidad) {
             this.cantidadColores = cantidad;
         }
 
-        public List<Integer> getNumeros() {
+        public Map<Integer, Integer> getNumeros() {
             return numeros;
-        }
-
-        public List<String> getColores() {
-            return colores;
-        }
-
-        public int getCantidadNumeros() {
-            return cantidadNumeros;
         }
 
         public int getCantidadColores() {
@@ -134,7 +111,7 @@ public class Proyecto_Ruleta {
                 Apuesta apuesta = new Apuesta();
                 realizarApuesta(opcion, apuesta);
 
-                if (!apuesta.getNumeros().isEmpty() || !apuesta.getColores().isEmpty()) {
+                if (!apuesta.getNumeros().isEmpty()) {
                     jugarRonda(apuesta);
                 }
 
@@ -176,54 +153,31 @@ public class Proyecto_Ruleta {
                 for (String parte : numerosInput.split(",")) {
                     try {
                         int numero = Integer.parseInt(parte.trim());
-                        apuesta.agregarNumero(numero);
+                        int cantidad = Integer.parseInt(JOptionPane.showInputDialog("Ingrese la cantidad de fichas para el número " + numero));
+                        if (jugador.puedeApostar(cantidad)) {
+                            apuesta.agregarNumero(numero, cantidad);
+                            jugador.modificarSaldo(-cantidad);
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Saldo insuficiente para apostar esa cantidad.");
+                        }
                     } catch (NumberFormatException e) {
-                        JOptionPane.showMessageDialog(null, "Número no válido: " + parte);
+                        JOptionPane.showMessageDialog(null, "Número o cantidad no válida: " + parte);
                     }
                 }
-                solicitarCantidad("números", apuesta);
             }
-
-            if (opcion == 2 || opcion == 3) {
-                String coloresInput = JOptionPane.showInputDialog("Ingrese los colores a apostar (Rojo/Negro, separados por comas): ");
-                for (String parte : coloresInput.split(",")) {
-                    apuesta.agregarColor(parte.trim());
-                }
-                solicitarCantidad("colores", apuesta);
-            }
-        }
-
-        private void solicitarCantidad(String tipo, Apuesta apuesta) {
-            int cantidad;
-            do {
-                String cantidadStr = JOptionPane.showInputDialog("Ingrese la cantidad de fichas a apostar en " + tipo + ": ");
-                cantidad = Integer.parseInt(cantidadStr);
-            } while (!jugador.puedeApostar(cantidad));
-           
-            if (tipo.equals("números")) {
-                apuesta.setCantidadNumeros(cantidad);
-            } else {
-                apuesta.setCantidadColores(cantidad);
-            }
-            jugador.modificarSaldo(-cantidad);
         }
 
         private void jugarRonda(Apuesta apuesta) {
             String numeroGanador = ruleta.girarNumero();
-            String colorGanador = ruleta.obtenerColor(numeroGanador);
 
             JOptionPane.showMessageDialog(null, "La ruleta gira...\n"
-                + "Número ganador: " + numeroGanador + " (" + colorGanador + ")");
+                + "Número ganador: " + numeroGanador);
 
             int ganancias = 0;
-            if (apuesta.getNumeros().contains(Integer.parseInt(numeroGanador))) {
-                ganancias += apuesta.getCantidadNumeros() * 35;
-                JOptionPane.showMessageDialog(null, "¡Has ganado apostando a los números!");
-            }
-
-            if (apuesta.getColores().contains(colorGanador)) {
-                ganancias += apuesta.getCantidadColores();
-                JOptionPane.showMessageDialog(null, "¡Has ganado apostando a los colores!");
+            int numeroGanadorInt = Integer.parseInt(numeroGanador);
+            if (apuesta.getNumeros().containsKey(numeroGanadorInt)) {
+                ganancias += apuesta.getNumeros().get(numeroGanadorInt) * 35;
+                JOptionPane.showMessageDialog(null, "¡Has ganado apostando al número " + numeroGanadorInt + "!");
             }
 
             jugador.modificarSaldo(ganancias);
